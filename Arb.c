@@ -15,15 +15,15 @@ void multiply(Arb* a, int mult)
    int i;
    int size = a->size;
    unsigned int* num = a->num;
-   u64 buffer;
+   u64 buffer = 0;
    unsigned int* result = malloc((size+1)*sizeof(unsigned int));
-   result[0] = 0;
    for (i = 0; i < size; ++i)
    {
-       buffer = (u64) num[i] * (u64) mult + (u64) result[i];
+       buffer += (u64) num[i] * (u64) mult;
        result[i] = buffer;
-       result[i+1] = buffer >> 32;
+       buffer >>= 32;
    }
+   result[i] = buffer;
    if (result[size] != 0)
        size++;
    free(a->num);
