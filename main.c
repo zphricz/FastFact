@@ -4,9 +4,9 @@
 
 int main(int argc, char* argv[])
 {
-    int i;
-    Arb num;
+    Arb a;
     int limit; 
+
     if (argc != 2)
     {
         printf("Please input a number\n");
@@ -18,12 +18,16 @@ int main(int argc, char* argv[])
         printf("Please input a non-negative number\n");
         return 1;
     }
-    init(&num, 1);
-    for (i = 2; i <= limit; ++i)
+
+    /* Perform factorial */
+    init(&a, 1);
+    for (unsigned int i = 2; i <= (unsigned int) limit; ++i)
     {
-        multiply(&num, i);
+        multiply(&a, i);
     }
-    print_bin(&num);
-    kill(&num);
+
+    print_bin(&a);
+    kill(&a);
+
     return 0;
 }

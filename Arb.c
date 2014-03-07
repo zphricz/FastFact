@@ -2,56 +2,60 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
-void init(Arb* a, int assign)
+void init(Arb* a, unsigned int assign)
 {
-    a->num = malloc(1*sizeof(unsigned int));
+    a->num = malloc(sizeof(unsigned int));
     a->size = 1;
-    *(a->num) = assign;
+    a->num[0] = assign;
 }
 
-void multiply(Arb* a, int mult)
+void multiply(Arb* a, unsigned int factor)
 {
-   int i;
-   int size = a->size;
-   unsigned int* num = a->num;
-   u64 buffer = 0;
-   unsigned int* result = malloc((size+1)*sizeof(unsigned int));
-   for (i = 0; i < size; ++i)
+   u64 buffer_64 = 0;
+
+    /* Reallocates a new buffer for arbitary values with every call - can be
+     * easily improved, but I'm lazy :/ */
+   unsigned int* result = malloc((a->size+1)*sizeof(unsigned int));
+
+   /* Loop over every 32-bit element of a->num and multiply by factor, storing
+    * the 64-bit result in buffer_64. Transfer from buffer_64 to result array */
+   for (int i = 0; i < a->size; ++i)
    {
-       buffer += (u64) num[i] * (u64) mult;
-       result[i] = buffer;
-       buffer >>= 32;
+       buffer_64 += (u64) a->num[i] * (u64) factor;
+       result[i] = buffer_64; /* Grabs the rightmost 32 bits of buffer_64 */
+       buffer_64 >>= 32;
    }
-   result[i] = buffer;
-   if (result[size] != 0)
-       size++;
+   result[a->size] = buffer_64;
+
+   /* If buffer_64 is non-zero at this point, it means that the result of
+    * multiplication has created a number that needs a larger buffer size than
+    * Arb a previously had. */
+   if (buffer_64 != 0)
+       a->size++;
+
    free(a->num);
    a->num = result;
-   a->size = size;
 }
 
 void print_dec_dibble_dabble(Arb* a)
 {
-    int size = a->size;
-    unsigned int* num = a->num;
-    char* str = malloc(size * 32 * sizeof(char));
-    int curr = size * 32 - 2;
-    int i;
-    int j;
+    char* str = malloc(a->size * 32 * sizeof(char));
+    int curr = a->size * 32 - 2;
     int end = 0;
-    memset(str, 0, size * 32);
-    int num_shifts = (size-1) * 32;
-    j = 31;
-    while (num[size - 1] & 1 << j == 0)
+    memset(str, 0, a->size * 32);
+    int num_shifts = (a->size-1) * 32;
+    int j = 31;
+    while (a->num[a->size - 1] & 1 << j == 0)
         j--;
     num_shifts += j + 1;
     
-    for (i = 0; i < num_shifts; ++i)
+    for (int i = 0; i < num_shifts; ++i)
     {
 
         // perform dabbles
-        for (j = curr; j < size * 32 - 1; ++j)
+        for (int j = curr; j < a->size * 32 - 1; ++j)
         {
             if (str[j] >= 5)
             {
@@ -68,7 +72,7 @@ void print_dec_dibble_dabble(Arb* a)
             curr--;
             str[curr] = 1;
         }
-        for (j = begin; j < size * 32 - 1; ++j)
+        for (int j = begin; j < a->size * 32 - 1; ++j)
         {
             str[j] <<= 1;
             if (str[j] >= 16)
@@ -79,19 +83,19 @@ void print_dec_dibble_dabble(Arb* a)
         }
       
         // Shift over everything in Arb
-        str[size * 32 - 2] += (num[size - 1] & 0x80000000) >> 31;
-        num[size - 1] <<= 1;
-        for (j = size - 2; j >= end; --j)
+        str[a->size * 32 - 2] += (a->num[a->size - 1] & 0x80000000) >> 31;
+        a->num[a->size - 1] <<= 1;
+        for (int j = a->size - 2; j >= end; --j)
         {
-            num[j+1] += (num[j] & 0x80000000) >> 31;
-            num[j] <<= 1;
+            a->num[j+1] += (a->num[j] & 0x80000000) >> 31;
+            a->num[j] <<= 1;
         }
-        while (num[end] == 0)
+        while (a->num[end] == 0)
         {
             end++;
         }
     }
-    for (i = curr; i < size * 32 - 1; ++i)
+    for (int i = curr; i < a->size * 32 - 1; ++i)
     {
         str[i] += '0';
     }
@@ -101,26 +105,21 @@ void print_dec_dibble_dabble(Arb* a)
 
 void print_dec_arb_bcd(Arb* a)
 {
-    int size = a->size;
-    unsigned int* num = a->num;
-    char *str = malloc(size * 32 * sizeof(char)); // Eh, just allocate an array that I know will be big enough
-    char *buf = malloc(size * 32 * sizeof(char));
-    int i;
-    int j;
-    int k;
-    int lim = size * 32 - 2;
+    char *str = malloc(a->size * 32 * sizeof(char)); // Eh, just allocate an array that I know will be big enough
+    char *buf = malloc(a->size * 32 * sizeof(char));
+    int lim = a->size * 32 - 2;
     int lowest = lim;
-    memset(str, '0', size*32*sizeof(char));
-    memset(buf, 0, size*32*sizeof(char));
+    memset(str, '0', a->size * 32 * sizeof(char));
+    memset(buf, 0, a->size * 32 * sizeof(char));
     buf[lim] = 1;
     str[lim + 1] = 0;
-    for (i = 0; i < size; ++i)
+    for (int i = 0; i < a->size; ++i)
     {
-        for (j = 0; j < 32; ++j)
+        for (int j = 0; j < 32; ++j)
         {
-            if ((num[i] >> j) & 0x00000001)
+            if ((a->num[i] >> j) & 0x00000001)
             {
-                for (k = lim; k >= lowest; k--)
+                for (int k = lim; k >= lowest; k--)
                 {
                     str[k] += buf[k];
                     if (str[k] > '9')
@@ -130,11 +129,11 @@ void print_dec_arb_bcd(Arb* a)
                     }
                 }
             }
-            for (k = lim; k >= lowest; k--)
+            for (int k = lim; k >= lowest; k--)
             {
                 buf[k] *= 2;
             }
-            for (k = lim; k >= lowest; k--)
+            for (int k = lim; k >= lowest; k--)
             {
                 if (buf[k] > 9)
                 {
@@ -149,7 +148,7 @@ void print_dec_arb_bcd(Arb* a)
             }
         }
     }
-    k = 0;
+    int k = 0;
     while (str[k] == '0')
         k++;
     printf("%s\n", str + k);
@@ -159,17 +158,15 @@ void print_dec_arb_bcd(Arb* a)
 
 void print_bin(Arb* a)
 {
-    int size = a->size;
-    unsigned int* num = a->num;
-    int i;
-    int j;
-    char c;
+    /* Don't print until  first '1' is found */
     bool print = false;
-    for(i = size-1; i >= 0; i--)
+
+    /* Loop over every bit of every 32-bit number in a->num, print bit */
+    for(int i = a->size-1; i >= 0; i--)
     {
-        for(j = 31; j >= 0; j--)
+        for(int j = 31; j >= 0; j--)
         {
-            c = '0' + ((num[i] >> j) & 0x00000001);
+            char c = '0' + ((a->num[i] >> j) & 0x00000001);
             if (print)
             {
                 putchar(c);
@@ -189,3 +186,4 @@ void kill(Arb* a)
 {
     free(a->num);
 }
+
