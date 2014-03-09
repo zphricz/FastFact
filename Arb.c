@@ -13,30 +13,30 @@ void init(Arb* a, unsigned int assign)
 
 void multiply(Arb* a, unsigned int factor)
 {
-   u64 buffer_64 = 0;
+    u64 buffer_64 = 0;
 
     /* Reallocates a new buffer for arbitary values with every call - can be
      * easily improved, but I'm lazy :/ */
-   unsigned int* result = malloc((a->size+1)*sizeof(unsigned int));
+    unsigned int* result = malloc((a->size+1)*sizeof(unsigned int));
 
-   /* Loop over every 32-bit element of a->num and multiply by factor, storing
-    * the 64-bit result in buffer_64. Transfer from buffer_64 to result array */
-   for (int i = 0; i < a->size; ++i)
-   {
-       buffer_64 += (u64) a->num[i] * (u64) factor;
-       result[i] = buffer_64; /* Grabs the rightmost 32 bits of buffer_64 */
-       buffer_64 >>= 32;
-   }
-   result[a->size] = buffer_64;
+    /* Loop over every 32-bit element of a->num and multiply by factor, storing
+     * the 64-bit result in buffer_64. Transfer from buffer_64 to result array */
+    for (int i = 0; i < a->size; ++i)
+    {
+        buffer_64 += (u64) a->num[i] * (u64) factor;
+        result[i] = buffer_64; /* Grabs the rightmost 32 bits of buffer_64 */
+        buffer_64 >>= 32;
+    }
+    result[a->size] = buffer_64;
 
-   /* If buffer_64 is non-zero at this point, it means that the result of
-    * multiplication has created a number that needs a larger buffer size than
-    * Arb a previously had. */
-   if (buffer_64 != 0)
-       a->size++;
+    /* If buffer_64 is non-zero at this point, it means that the result of
+     * multiplication has created a number that needs a larger buffer size than
+     * Arb a previously had. */
+    if (buffer_64 != 0)
+        a->size++;
 
-   free(a->num);
-   a->num = result;
+    free(a->num);
+    a->num = result;
 }
 
 void print_dec_dibble_dabble(Arb* a)
@@ -50,7 +50,7 @@ void print_dec_dibble_dabble(Arb* a)
     while (a->num[a->size - 1] & 1 << j == 0)
         j--;
     num_shifts += j + 1;
-    
+
     for (int i = 0; i < num_shifts; ++i)
     {
 
@@ -81,7 +81,7 @@ void print_dec_dibble_dabble(Arb* a)
                 str[j-1] += 1;
             }
         }
-      
+
         // Shift over everything in Arb
         str[a->size * 32 - 2] += (a->num[a->size - 1] & 0x80000000) >> 31;
         a->num[a->size - 1] <<= 1;

@@ -5,7 +5,7 @@
 int main(int argc, char* argv[])
 {
     Arb a;
-    int limit; 
+    int limit;
 
     if (argc != 2)
     {
